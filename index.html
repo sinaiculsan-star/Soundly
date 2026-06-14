@@ -281,9 +281,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
       </div>
 
       <div class="settings-card">
-        <div class="settings-title">Clave API de Claude</div>
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-..."/>
-        <p class="note">Necesaria para buscar en tiempo real con lineups reales. Consíguela en <strong>console.anthropic.com</strong> → Claves de API.</p>
+        <div class="settings-title">Clave SerpAPI (búsqueda real)</div>
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="tu clave de serpapi.com"/>
+        <p class="note">100 búsquedas gratis/mes. Consíguela en <strong>serpapi.com</strong> → Dashboard → API Key.</p>
         <button class="save-btn" onclick="saveKey()">Guardar clave</button>
       </div>
     </div>
@@ -530,58 +530,72 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
-// ---- LOAD CARTELERA (AI) ----
+// ---- FESTIVALES BASE ----
+const FESTIVAL_QUERIES = [
+  { q: 'Mad Cool Festival 2026 lineup artistas', nombre: 'Mad Cool Festival', lugar: 'Madrid', fecha: '10 Jul 2026', web: 'https://madcoolfestival.es' },
+  { q: 'Resurrection Fest 2026 lineup cartel', nombre: 'Resurrection Fest', lugar: 'Viveiro, Lugo', fecha: '2 Jul 2026', web: 'https://resurrectionfest.es' },
+  { q: 'BBK Live 2026 lineup artistas', nombre: 'BBK Live', lugar: 'Bilbao', fecha: '9 Jul 2026', web: 'https://bbklive.com' },
+  { q: 'FIB Festival Benicassim 2026 lineup', nombre: 'FIB Benicàssim', lugar: 'Benicàssim', fecha: '17 Jul 2026', web: 'https://fiberfib.com' },
+  { q: 'Low Festival Benidorm 2026 cartel artistas', nombre: 'Low Festival', lugar: 'Benidorm', fecha: '4 Jul 2026', web: 'https://lowfestival.es' },
+  { q: 'Primavera Sound Barcelona 2026 lineup', nombre: 'Primavera Sound', lugar: 'Barcelona', fecha: '4 Jun 2026', web: 'https://primaverasound.com' },
+  { q: 'Sonorama Ribera 2026 cartel artistas', nombre: 'Sonorama Ribera', lugar: 'Aranda de Duero', fecha: '7 Ago 2026', web: 'https://sonorama.es' },
+  { q: 'Download Festival Madrid 2026 lineup', nombre: 'Download Festival', lugar: 'Madrid', fecha: '19 Jun 2026', web: 'https://downloadfestival.es' },
+  { q: 'Rock Fest Barcelona 2026 cartel', nombre: 'Rock Fest Barcelona', lugar: 'Barcelona', fecha: '3 Jul 2026', web: 'https://rockfest.es' },
+  { q: 'Azkena Rock Festival 2026 lineup', nombre: 'Azkena Rock Festival', lugar: 'Vitoria-Gasteiz', fecha: '26 Jun 2026', web: 'https://azkenarockfestival.com' },
+  { q: 'Rototom Sunsplash 2026 lineup artistas', nombre: 'Rototom Sunsplash', lugar: 'Benicàssim', fecha: '14 Ago 2026', web: 'https://rototom.com' },
+  { q: 'Bilbao BBK Live 2026 artistas cartel confirmados', nombre: 'Bilbao BBK Live', lugar: 'Bilbao', fecha: '9 Jul 2026', web: 'https://bbklive.com' },
+];
+
+// ---- LOAD CARTELERA (SerpAPI) ----
 async function loadCartelera() {
   if (!apiKey) {
     document.getElementById('cartelera-list').innerHTML =
-      '<div class="empty-box">⚠️ Configura tu clave API en Ajustes para cargar la cartelera en tiempo real.</div>';
+      '<div class="empty-box">⚠️ Configura tu clave SerpAPI en Ajustes para buscar lineups reales.</div>';
     return;
   }
 
   document.getElementById('cartelera-list').innerHTML =
-    '<div class="loading-box"><div class="spinner"></div><div>Buscando conciertos en España...</div><p>El agente está revisando la cartelera</p></div>';
+    '<div class="loading-box"><div class="spinner"></div><div>Buscando lineups reales en Google...</div><p>Consultando webs de festivales</p></div>';
   document.getElementById('love-banner').style.display = 'none';
 
-  const artists = [...document.querySelectorAll('#artistGrid .stag.on')].map(el => el.textContent.trim()).join(', ');
-  const genres = [...document.querySelectorAll('#genreGrid .stag.on-genre')].map(el => el.textContent.trim()).join(', ');
-  const zones = [...document.querySelectorAll('#zoneGrid .stag.on-zone')].map(el => el.textContent.trim()).join(', ');
-
-  const prompt = `Busca conciertos y festivales de música en España para 2026.
-Artistas favoritos del usuario (marca si aparecen): ${artists}
-Géneros de interés: ${genres}
-Zonas: ${zones}
-
-Devuelve ÚNICAMENTE un JSON array (sin markdown, sin texto extra) con al menos 15 eventos reales, con este formato:
-[{"nombre":"...","fecha":"DD Mon YYYY","lugar":"Ciudad, Venue/Festival","tipo":"Festival|Concierto","genero":"...","artistas":"Artista1, Artista2, Artista3","web":"https://...","poster":"https://...url-imagen-cartel..."}]
-
-Incluye eventos de toda España, priorizando los que tengan artistas de la lista de favoritos. Intenta encontrar la URL real del cartel o imagen oficial del evento para el campo poster.`;
+  const favArtists = [...document.querySelectorAll('#artistGrid .stag.on')].map(el => el.textContent.trim());
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'x-api-key': apiKey },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 3000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    const events = [];
+    for (const fest of FESTIVAL_QUERIES) {
+      try {
+        const url = `https://serpapi.com/search.json?q=${encodeURIComponent(fest.q)}&hl=es&gl=es&num=5&api_key=${apiKey}`;
+        const res = await fetch(url);
+        const data = await res.json();
 
-    const data = await res.json();
-    let text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const match = text.match(/\[[\s\S]*\]/);
-    if (match) {
-      const events = JSON.parse(match[0]);
-      allEvents = events;
-      localStorage.setItem('gig_events', JSON.stringify(events));
-      renderCartelera();
-      renderFavoritos();
-    } else {
-      throw new Error('No JSON');
+        const allText = [
+          ...(data.organic_results || []).map(r => (r.snippet || '') + ' ' + (r.title || '')),
+          data.knowledge_graph?.description || ''
+        ].join(' ');
+
+        const found = favArtists.filter(a => allText.toLowerCase().includes(a.toLowerCase()));
+        const poster = data.knowledge_graph?.image || data.organic_results?.find(r => r.thumbnail)?.thumbnail || '';
+
+        events.push({
+          nombre: fest.nombre,
+          fecha: fest.fecha,
+          lugar: fest.lugar,
+          tipo: 'Festival',
+          genero: 'Rock / Metal / Indie',
+          artistas: found.length > 0 ? found.join(', ') : (data.organic_results?.[0]?.snippet?.slice(0, 100) || 'Ver web oficial'),
+          web: fest.web,
+          poster: poster
+        });
+      } catch(e) {
+        events.push({ nombre: fest.nombre, fecha: fest.fecha, lugar: fest.lugar, tipo: 'Festival', genero: 'Rock / Metal', artistas: 'Ver web oficial', web: fest.web, poster: '' });
+      }
     }
+
+    allEvents = events;
+    localStorage.setItem('gig_events', JSON.stringify(events));
+    renderCartelera();
+    renderFavoritos();
   } catch(e) {
-    // Try cache
     const cached = localStorage.getItem('gig_events');
     if (cached) {
       allEvents = JSON.parse(cached);
@@ -591,7 +605,7 @@ Incluye eventos de toda España, priorizando los que tengan artistas de la lista
         '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center">Mostrando datos en caché · Actualiza en Ajustes</div>');
     } else {
       document.getElementById('cartelera-list').innerHTML =
-        '<div class="empty-box">Error al cargar. Comprueba tu clave API en Ajustes.</div>';
+        '<div class="empty-box">Error. Comprueba tu clave SerpAPI en Ajustes.</div>';
     }
   }
 }
@@ -599,7 +613,7 @@ Incluye eventos de toda España, priorizando los que tengan artistas de la lista
 // ---- SETTINGS ----
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
-  if (!val.startsWith('sk-ant-')) { alert('La clave debe comenzar con sk-ant-'); return; }
+  if (val.length < 10) { alert('Clave no válida'); return; }
   apiKey = val;
   localStorage.setItem('gig_api_key', val);
   const btn = document.querySelector('.save-btn');
