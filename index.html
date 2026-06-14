@@ -281,9 +281,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
       </div>
 
       <div class="settings-card">
-        <div class="settings-title">Clave SerpAPI (búsqueda real)</div>
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="tu clave de serpapi.com"/>
-        <p class="note">100 búsquedas gratis/mes. Consíguela en <strong>serpapi.com</strong> → Dashboard → API Key.</p>
+        <div class="settings-title">Clave API de OpenAI</div>
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-proj-..."/>
+        <p class="note">Consíguela en <strong>platform.openai.com/api-keys</strong>. Usa el saldo de tu cuenta OpenAI.</p>
         <button class="save-btn" onclick="saveKey()">Guardar clave</button>
       </div>
     </div>
@@ -546,55 +546,57 @@ const FESTIVAL_QUERIES = [
   { q: 'Bilbao BBK Live 2026 artistas cartel confirmados', nombre: 'Bilbao BBK Live', lugar: 'Bilbao', fecha: '9 Jul 2026', web: 'https://bbklive.com' },
 ];
 
-// ---- LOAD CARTELERA (SerpAPI) ----
+// ---- LOAD CARTELERA (OpenAI web search) ----
 async function loadCartelera() {
   if (!apiKey) {
     document.getElementById('cartelera-list').innerHTML =
-      '<div class="empty-box">⚠️ Configura tu clave SerpAPI en Ajustes para buscar lineups reales.</div>';
+      '<div class="empty-box">⚠️ Configura tu clave API en Ajustes para cargar la cartelera en tiempo real.</div>';
     return;
   }
 
   document.getElementById('cartelera-list').innerHTML =
-    '<div class="loading-box"><div class="spinner"></div><div>Buscando lineups reales en Google...</div><p>Consultando webs de festivales</p></div>';
+    '<div class="loading-box"><div class="spinner"></div><div>Buscando conciertos y festivales en España...</div><p>Consultando internet en tiempo real</p></div>';
   document.getElementById('love-banner').style.display = 'none';
 
-  const favArtists = [...document.querySelectorAll('#artistGrid .stag.on')].map(el => el.textContent.trim());
+  const artists = [...document.querySelectorAll('#artistGrid .stag.on')].map(el => el.textContent.trim()).join(', ');
+  const genres = [...document.querySelectorAll('#genreGrid .stag.on-genre')].map(el => el.textContent.trim()).join(', ');
+  const zones = [...document.querySelectorAll('#zoneGrid .stag.on-zone')].map(el => el.textContent.trim()).join(', ');
+
+  const prompt = `Busca en internet los conciertos y festivales de música que hay en España en 2026, incluyendo festivales y conciertos independientes.
+Artistas favoritos del usuario (busca específicamente si actúan en algún evento): ${artists}
+Géneros de interés: ${genres}
+Zonas: ${zones}
+
+Busca en webs como madcoolfestival.es, resurrectionfest.es, ticketmaster.es, entradas.com, songkick.com, bandsintown.com y webs oficiales de festivales.
+
+Devuelve ÚNICAMENTE un JSON array (sin markdown, sin texto extra) con al menos 15 eventos reales encontrados en internet, con este formato exacto:
+[{"nombre":"...","fecha":"DD Mon YYYY","lugar":"Ciudad, Venue","tipo":"Festival|Concierto","genero":"...","artistas":"Artista1, Artista2, Artista3","web":"https://...","poster":""}]
+
+Es muy importante que los artistas sean reales y verificados en internet, no inventados.`;
 
   try {
-    const events = [];
-    for (const fest of FESTIVAL_QUERIES) {
-      try {
-        const url = `https://serpapi.com/search.json?q=${encodeURIComponent(fest.q)}&hl=es&gl=es&num=5&api_key=${apiKey}`;
-        const res = await fetch(url);
-        const data = await res.json();
+    const res = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini-search-preview',
+        tools: [{ type: 'web_search_preview' }],
+        input: prompt
+      })
+    });
 
-        const allText = [
-          ...(data.organic_results || []).map(r => (r.snippet || '') + ' ' + (r.title || '')),
-          data.knowledge_graph?.description || ''
-        ].join(' ');
-
-        const found = favArtists.filter(a => allText.toLowerCase().includes(a.toLowerCase()));
-        const poster = data.knowledge_graph?.image || data.organic_results?.find(r => r.thumbnail)?.thumbnail || '';
-
-        events.push({
-          nombre: fest.nombre,
-          fecha: fest.fecha,
-          lugar: fest.lugar,
-          tipo: 'Festival',
-          genero: 'Rock / Metal / Indie',
-          artistas: found.length > 0 ? found.join(', ') : (data.organic_results?.[0]?.snippet?.slice(0, 100) || 'Ver web oficial'),
-          web: fest.web,
-          poster: poster
-        });
-      } catch(e) {
-        events.push({ nombre: fest.nombre, fecha: fest.fecha, lugar: fest.lugar, tipo: 'Festival', genero: 'Rock / Metal', artistas: 'Ver web oficial', web: fest.web, poster: '' });
-      }
+    const data = await res.json();
+    const text = data.output?.filter(b => b.type === 'message').map(b => b.content?.filter(c => c.type === 'output_text').map(c => c.text).join('')).join('') || '';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+      const events = JSON.parse(match[0]);
+      allEvents = events;
+      localStorage.setItem('gig_events', JSON.stringify(events));
+      renderCartelera();
+      renderFavoritos();
+    } else {
+      throw new Error('No JSON');
     }
-
-    allEvents = events;
-    localStorage.setItem('gig_events', JSON.stringify(events));
-    renderCartelera();
-    renderFavoritos();
   } catch(e) {
     const cached = localStorage.getItem('gig_events');
     if (cached) {
@@ -605,7 +607,7 @@ async function loadCartelera() {
         '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center">Mostrando datos en caché · Actualiza en Ajustes</div>');
     } else {
       document.getElementById('cartelera-list').innerHTML =
-        '<div class="empty-box">Error. Comprueba tu clave SerpAPI en Ajustes.</div>';
+        '<div class="empty-box">Error al cargar. Comprueba tu clave API en Ajustes.</div>';
     }
   }
 }
@@ -613,7 +615,7 @@ async function loadCartelera() {
 // ---- SETTINGS ----
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
-  if (val.length < 10) { alert('Clave no válida'); return; }
+  if (!val.startsWith('sk-')) { alert('La clave debe comenzar con sk-'); return; }
   apiKey = val;
   localStorage.setItem('gig_api_key', val);
   const btn = document.querySelector('.save-btn');
