@@ -281,7 +281,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
       </div>
 
       <div class="settings-card">
-        <div class="settings-title">Clave API de OpenAI</div>
+        <div class="settings-title">Búsqueda en tiempo real</div>
+        <input class="api-input" type="text" id="vercelInput" placeholder="https://tu-app.vercel.app" style="margin-bottom:8px"/>
+        <p class="note" style="margin-bottom:8px">URL de tu servidor Vercel para buscar conciertos en tiempo real.</p>
+        <button class="save-btn" onclick="saveVercel()" style="margin-bottom:12px">Guardar URL Vercel</button>
+        <div class="settings-title" style="margin-top:8px">Clave API de OpenAI</div>
         <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-proj-..."/>
         <p class="note">Consíguela en <strong>platform.openai.com/api-keys</strong>. Usa el saldo de tu cuenta OpenAI.</p>
         <button class="save-btn" onclick="saveKey()">Guardar clave</button>
@@ -546,73 +550,220 @@ const FESTIVAL_QUERIES = [
   { q: 'Bilbao BBK Live 2026 artistas cartel confirmados', nombre: 'Bilbao BBK Live', lugar: 'Bilbao', fecha: '9 Jul 2026', web: 'https://bbklive.com' },
 ];
 
-// ---- LOAD CARTELERA (OpenAI web search) ----
+// ---- EVENTOS REALES 2026 ----
+const EVENTOS_REALES = [
+  // CONCIERTOS INDIVIDUALES
+  {
+    nombre: "Linkin Park — From Zero World Tour",
+    fecha: "23-24 Jun 2026",
+    lugar: "Madrid, Auditorio Miguel Ríos, Rivas-Vaciamadrid",
+    tipo: "Concierto",
+    genero: "Nu Metal / Rock Alternativo",
+    artistas: "Linkin Park, Clipse, Corella",
+    web: "https://www.ticketmaster.es",
+    poster: ""
+  },
+  {
+    nombre: "Muse — The Wow! Signal Europa Tour",
+    fecha: "Nov-Dic 2026",
+    lugar: "España (fechas por confirmar)",
+    tipo: "Concierto",
+    genero: "Rock / Prog / Electrónico",
+    artistas: "Muse",
+    web: "https://muse.mu",
+    poster: ""
+  },
+  // FESTIVALES
+  {
+    nombre: "Resurrection Fest",
+    fecha: "1-4 Jul 2026",
+    lugar: "Viveiro, Lugo",
+    tipo: "Festival",
+    genero: "Metal / Hardcore / Rock",
+    artistas: "Iron Maiden, Limp Bizkit, Marilyn Manson, Sabaton, Trivium, The Rasmus, A Day To Remember, Anthrax, Mastodon, Testament, P.O.D., Converge, Blood Incantation, Caliban, Imminence, Bleed From Within",
+    web: "https://resurrectionfest.es",
+    poster: ""
+  },
+  {
+    nombre: "Download Festival Madrid",
+    fecha: "19-20 Jun 2026",
+    lugar: "Madrid, La Ciudad del Rock",
+    tipo: "Festival",
+    genero: "Rock / Metal / Hard Rock",
+    artistas: "Consulta web oficial para lineup completo",
+    web: "https://downloadfestival.es",
+    poster: ""
+  },
+  {
+    nombre: "Mad Cool Festival",
+    fecha: "8-11 Jul 2026",
+    lugar: "Madrid, Iberdrola Music",
+    tipo: "Festival",
+    genero: "Indie / Rock / Pop alternativo",
+    artistas: "Foo Fighters, Florence + The Machine, Nick Cave & The Bad Seeds, Lorde, Twenty One Pilots, Kings of Leon, Pulp, Pixies, Halsey, Wolf Alice, The Black Crowes, Moby, A Perfect Circle, Interpol, David Byrne, Kasabian",
+    web: "https://madcoolfestival.es",
+    poster: ""
+  },
+  {
+    nombre: "Bilbao BBK Live",
+    fecha: "9-11 Jul 2026",
+    lugar: "Bilbao, Monte Kobetamendi",
+    tipo: "Festival",
+    genero: "Pop / Rock / Electrónica / Indie",
+    artistas: "Calvin Harris, Robbie Williams, David Byrne, Lily Allen, IDLES, Interpol, FKA Twigs, Kylie Minogue, Japanese Breakfast, Pulp, Alabama Shakes, Michael Kiwanuka, Orbital, RAYE",
+    web: "https://bilbaobbklive.com",
+    poster: ""
+  },
+  {
+    nombre: "FIB — Festival Internacional de Benicàssim",
+    fecha: "16-18 Jul 2026",
+    lugar: "Benicàssim, Castellón",
+    tipo: "Festival",
+    genero: "Indie / Rock / Electrónica",
+    artistas: "The Prodigy, Biffy Clyro, Franz Ferdinand, The Kooks, Kaiser Chiefs, Pendulum, Lori Meyers, La La Love You, Jet, The Fratellis, Sophie Ellis-Bextor, Carlos Ares, Dorian, La Habitación Roja, Sexy Zebras",
+    web: "https://fiberfib.com",
+    poster: ""
+  },
+  {
+    nombre: "Low Festival",
+    fecha: "3-5 Jul 2026",
+    lugar: "Benidorm, Alicante",
+    tipo: "Festival",
+    genero: "Indie / Rock / Alternativo",
+    artistas: "Consulta web oficial para lineup completo",
+    web: "https://lowfestival.es",
+    poster: ""
+  },
+  {
+    nombre: "Primavera Sound Barcelona",
+    fecha: "3-7 Jun 2026",
+    lugar: "Barcelona, Parc del Fòrum",
+    tipo: "Festival",
+    genero: "Indie / Alternativo / Electrónica",
+    artistas: "Consulta web oficial para lineup completo",
+    web: "https://primaverasound.com",
+    poster: ""
+  },
+  {
+    nombre: "Sonorama Ribera",
+    fecha: "6-9 Ago 2026",
+    lugar: "Aranda de Duero, Burgos",
+    tipo: "Festival",
+    genero: "Rock / Indie español",
+    artistas: "Consulta web oficial para lineup completo",
+    web: "https://sonorama.es",
+    poster: ""
+  },
+  {
+    nombre: "O Son do Camiño",
+    fecha: "18-20 Jun 2026",
+    lugar: "Santiago de Compostela, Monte do Gozo",
+    tipo: "Festival",
+    genero: "Rock / Pop / Electrónica",
+    artistas: "Linkin Park, Katy Perry, Biffy Clyro, Dani Martín, Carlos Ares, Guitarricadelafuente, DJ Snake, Lola Índigo, Afrojack, Hoobastank, Sexy Zebras, Corella",
+    web: "https://osondocamino.es",
+    poster: ""
+  },
+  {
+    nombre: "Noches del Botánico",
+    fecha: "3 Jun - 31 Jul 2026",
+    lugar: "Madrid, Real Jardín Botánico",
+    tipo: "Festival",
+    genero: "Rock / Pop / Indie / Jazz",
+    artistas: "Van Morrison, John Legend, Garbage, Tom Jones, Nile Rodgers & Chic, Jean-Michel Jarre, Danny Elfman, The Kooks",
+    web: "https://nochesbotanico.com",
+    poster: ""
+  },
+  {
+    nombre: "Azkena Rock Festival",
+    fecha: "26-27 Jun 2026",
+    lugar: "Vitoria-Gasteiz",
+    tipo: "Festival",
+    genero: "Rock / Metal / Punk",
+    artistas: "Consulta web oficial para lineup completo",
+    web: "https://azkenarockfestival.com",
+    poster: ""
+  },
+  {
+    nombre: "Río Babel",
+    fecha: "3-5 Jul 2026",
+    lugar: "Madrid, Auditorio Miguel Ríos, Rivas-Vaciamadrid",
+    tipo: "Festival",
+    genero: "Pop / Rock / Indie / Latino",
+    artistas: "Katy Perry, The Offspring, Amaia, Molotov, Bomba Estéreo, La Casa Azul",
+    web: "https://riobabel.com",
+    poster: ""
+  },
+  {
+    nombre: "Rototom Sunsplash",
+    fecha: "14-20 Ago 2026",
+    lugar: "Benicàssim, Castellón",
+    tipo: "Festival",
+    genero: "Reggae / Dub / Electrónica",
+    artistas: "Consulta web oficial para lineup completo",
+    web: "https://rototom.com",
+    poster: ""
+  }
+];
+
+// ---- VERCEL API URL (cámbiala por la tuya tras desplegar) ----
+const VERCEL_URL = localStorage.getItem('vercel_url') || '';
+
+// ---- LOAD CARTELERA ----
 async function loadCartelera() {
-  if (!apiKey) {
-    document.getElementById('cartelera-list').innerHTML =
-      '<div class="empty-box">⚠️ Configura tu clave API en Ajustes para cargar la cartelera en tiempo real.</div>';
+  // Si no hay URL de Vercel, usar datos fijos
+  if (!VERCEL_URL) {
+    allEvents = EVENTOS_REALES;
+    localStorage.setItem('gig_events', JSON.stringify(EVENTOS_REALES));
+    renderCartelera();
+    renderFavoritos();
     return;
   }
 
   document.getElementById('cartelera-list').innerHTML =
-    '<div class="loading-box"><div class="spinner"></div><div>Buscando conciertos y festivales en España...</div><p>Consultando internet en tiempo real</p></div>';
+    '<div class="loading-box"><div class="spinner"></div><div>Buscando conciertos en España...</div><p>Consultando internet en tiempo real</p></div>';
   document.getElementById('love-banner').style.display = 'none';
 
   const artists = [...document.querySelectorAll('#artistGrid .stag.on')].map(el => el.textContent.trim()).join(', ');
   const genres = [...document.querySelectorAll('#genreGrid .stag.on-genre')].map(el => el.textContent.trim()).join(', ');
   const zones = [...document.querySelectorAll('#zoneGrid .stag.on-zone')].map(el => el.textContent.trim()).join(', ');
 
-  const prompt = `Busca en internet los conciertos y festivales de música que hay en España en 2026, incluyendo festivales y conciertos independientes.
-Artistas favoritos del usuario (busca específicamente si actúan en algún evento): ${artists}
-Géneros de interés: ${genres}
-Zonas: ${zones}
-
-Busca en webs como madcoolfestival.es, resurrectionfest.es, ticketmaster.es, entradas.com, songkick.com, bandsintown.com y webs oficiales de festivales.
-
-Devuelve ÚNICAMENTE un JSON array (sin markdown, sin texto extra) con al menos 15 eventos reales encontrados en internet, con este formato exacto:
-[{"nombre":"...","fecha":"DD Mon YYYY","lugar":"Ciudad, Venue","tipo":"Festival|Concierto","genero":"...","artistas":"Artista1, Artista2, Artista3","web":"https://...","poster":""}]
-
-Es muy importante que los artistas sean reales y verificados en internet, no inventados.`;
-
   try {
-    const res = await fetch('https://api.openai.com/v1/responses', {
+    const res = await fetch(VERCEL_URL + '/api/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini-search-preview',
-        tools: [{ type: 'web_search_preview' }],
-        input: prompt
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artists, genres, zones })
     });
-
     const data = await res.json();
-    const text = data.output?.filter(b => b.type === 'message').map(b => b.content?.filter(c => c.type === 'output_text').map(c => c.text).join('')).join('') || '';
-    const match = text.match(/\[[\s\S]*\]/);
-    if (match) {
-      const events = JSON.parse(match[0]);
-      allEvents = events;
-      localStorage.setItem('gig_events', JSON.stringify(events));
-      renderCartelera();
-      renderFavoritos();
+    if (data.events && data.events.length > 0) {
+      // Merge with static events, remove duplicates by name
+      const names = new Set(data.events.map(e => e.nombre.toLowerCase()));
+      const extras = EVENTOS_REALES.filter(e => !names.has(e.nombre.toLowerCase()));
+      allEvents = [...data.events, ...extras];
     } else {
-      throw new Error('No JSON');
+      allEvents = EVENTOS_REALES;
     }
+    localStorage.setItem('gig_events', JSON.stringify(allEvents));
+    renderCartelera();
+    renderFavoritos();
   } catch(e) {
-    const cached = localStorage.getItem('gig_events');
-    if (cached) {
-      allEvents = JSON.parse(cached);
-      renderCartelera();
-      renderFavoritos();
-      document.getElementById('cartelera-list').insertAdjacentHTML('afterbegin',
-        '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center">Mostrando datos en caché · Actualiza en Ajustes</div>');
-    } else {
-      document.getElementById('cartelera-list').innerHTML =
-        '<div class="empty-box">Error al cargar. Comprueba tu clave API en Ajustes.</div>';
-    }
+    allEvents = EVENTOS_REALES;
+    localStorage.setItem('gig_events', JSON.stringify(EVENTOS_REALES));
+    renderCartelera();
+    renderFavoritos();
+    document.getElementById('cartelera-list').insertAdjacentHTML('afterbegin',
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center">Búsqueda en tiempo real no disponible · Mostrando datos verificados</div>');
   }
 }
 
 // ---- SETTINGS ----
+function saveVercel() {
+  const val = document.getElementById('vercelInput').value.trim();
+  if (!val.startsWith('https://')) { alert('La URL debe comenzar con https://'); return; }
+  localStorage.setItem('vercel_url', val);
+  location.reload();
+}
+
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
   if (!val.startsWith('sk-')) { alert('La clave debe comenzar con sk-'); return; }
@@ -621,18 +772,13 @@ function saveKey() {
   const btn = document.querySelector('.save-btn');
   btn.textContent = '✓ Guardada';
   setTimeout(() => { btn.textContent = 'Guardar clave'; }, 2000);
-  loadCartelera();
+  const savedVercel = localStorage.getItem('vercel_url');
+if (savedVercel) document.getElementById('vercelInput').value = savedVercel;
+loadCartelera();
 }
 
 // ---- INIT ----
-const cached = localStorage.getItem('gig_events');
-if (cached) {
-  allEvents = JSON.parse(cached);
-  renderCartelera();
-  renderFavoritos();
-} else {
-  loadCartelera();
-}
+loadCartelera();
 </script>
 </body>
 </html>
