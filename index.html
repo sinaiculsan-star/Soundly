@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="GigAlert"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<title>GigAlert</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0a0a0a; --surface:#141414; --surface2:#1e1e1e;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+  --text:#f0f0f0; --muted:#777; --muted2:#555;
+  --accent:#e8ff47; --accent-dim:rgba(232,255,71,0.1); --accent-text:#0a0a0a;
+  --green:#47e884; --red:#ff5c5c; --blue:#4d9fff;
+  --love:#ff4d8a; --love-dim:rgba(255,77,138,0.12);
+  --radius:12px; --radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;overscroll-behavior:none}
+.app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto}
+
+/* TOPBAR */
+.topbar{padding:52px 20px 14px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar-row{display:flex;align-items:center;justify-content:space-between}
+.brand{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.5px}
+.brand span{color:var(--accent)}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--green);background:rgba(71,232,132,0.1);padding:4px 10px;border-radius:20px;border:1px solid rgba(71,232,132,0.2)}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.topbar-tabs{display:flex;gap:0;margin-top:14px;border-bottom:1px solid var(--border)}
+.ttab{flex:1;padding:8px 4px 10px;text-align:center;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;position:relative;bottom:-1px}
+.ttab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.section{padding:16px 20px}
+
+/* FILTER ROW */
+.filter-row{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.fchip{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border2);color:var(--muted);white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0}
+.fchip.on{background:var(--accent-dim);color:var(--accent);border-color:rgba(232,255,71,0.3)}
+
+/* LOVE BANNER */
+.love-banner{background:var(--love-dim);border:1px solid rgba(255,77,138,0.25);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.love-banner-icon{font-size:22px;flex-shrink:0}
+.love-banner-text{font-size:12px;color:var(--text);line-height:1.5}
+.love-banner-text strong{color:var(--love)}
+
+/* EVENT CARDS */
+.event-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;cursor:pointer;transition:border-color .15s;position:relative}
+.event-card:active{opacity:.85}
+.event-card.is-love{border-color:rgba(255,77,138,0.45)}
+.event-card.is-love .card-love-bar{display:block}
+.card-love-bar{display:none;position:absolute;top:0;left:0;width:3px;height:100%;background:var(--love)}
+.card-inner{display:flex;gap:12px;padding:13px 14px;align-items:flex-start}
+.date-block{min-width:44px;text-align:center;background:var(--surface2);border-radius:var(--radius-sm);padding:7px 4px;flex-shrink:0}
+.date-day{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:var(--text);line-height:1}
+.date-mon{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px;letter-spacing:.05em}
+.card-body{flex:1;min-width:0}
+.card-name{font-weight:600;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.dot-sep{width:3px;height:3px;border-radius:50%;background:var(--muted2);flex-shrink:0}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;flex-shrink:0}
+.tag-fest{background:rgba(77,159,255,0.14);color:var(--blue)}
+.tag-conc{background:var(--accent-dim);color:var(--accent)}
+.tag-metal{background:rgba(255,92,92,0.14);color:var(--red)}
+.card-artists{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.artist-chip{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.artist-chip.match{background:var(--love-dim);color:var(--love);border-color:rgba(255,77,138,0.3)}
+.card-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.love-badge{font-size:18px;line-height:1}
+.notify-btn{background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;color:var(--muted);font-size:16px;cursor:pointer;transition:all .15s}
+.notify-btn.on{border-color:var(--accent);background:var(--accent-dim)}
+
+/* SECTION LABEL */
+.sec-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.sec-label span{color:var(--love);font-size:13px}
+
+/* LOADING STATE */
+.loading-box{text-align:center;padding:48px 20px;color:var(--muted)}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-box p{font-size:13px;margin-top:4px}
+
+/* EMPTY */
+.empty-box{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .22s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-sheet{background:var(--surface);border-radius:20px 20px 0 0;max-height:88vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.modal-overlay.open .modal-sheet{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0}
+.modal-poster{width:100%;aspect-ratio:3/2;object-fit:cover;object-position:top;display:block}
+.modal-poster-ph{width:100%;aspect-ratio:3/2;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px}
+.modal-poster-ph span{font-size:52px}
+.modal-poster-ph p{font-size:12px;color:var(--muted)}
+.poster-loading{width:100%;aspect-ratio:3/2;background:var(--surface2);display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:12px}
+.modal-body{padding:18px 20px 32px}
+.modal-love-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.modal-love-badge{font-size:13px;font-weight:600;color:var(--love);background:var(--love-dim);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,77,138,0.3)}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.2}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.modal-cell{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
+.modal-cell-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.modal-cell-val{font-size:13px;font-weight:500;color:var(--text)}
+.modal-artists-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.modal-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.modal-chip{font-size:12px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.modal-chip.match{background:var(--love-dim);color:var(--love);border-color:rgba(255,77,138,0.3);font-weight:600}
+.modal-actions{display:flex;gap:10px}
+.btn-primary{flex:1;padding:13px;background:var(--accent);color:var(--accent-text);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer}
+.btn-secondary{padding:13px 14px;background:transparent;color:var(--text);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer}
+
+/* SETTINGS */
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.settings-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+.tag-grid{display:flex;flex-wrap:wrap;gap:6px}
+.stag{padding:6px 12px;border-radius:20px;font-size:12px;border:1px solid var(--border2);color:var(--muted);cursor:pointer;transition:all .15s}
+.stag.on{background:var(--love-dim);color:var(--love);border-color:rgba(255,77,138,0.35)}
+.stag.on-genre{background:var(--accent-dim);color:var(--accent);border-color:rgba(232,255,71,0.3)}
+.stag.on-zone{background:rgba(77,159,255,0.1);color:var(--blue);border-color:rgba(77,159,255,0.3)}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:13px;color:var(--text)}
+.setting-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.toggle{position:relative;width:42px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--surface2);border-radius:12px;cursor:pointer;transition:.2s;border:1px solid var(--border2)}
+.slider::before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.2s}
+.toggle input:checked+.slider{background:var(--love-dim);border-color:rgba(255,77,138,0.4)}
+.toggle input:checked+.slider::before{transform:translateX(18px);background:var(--love)}
+.api-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);font-size:12px;font-family:monospace;outline:none;margin-top:8px}
+.api-input:focus{border-color:var(--accent)}
+.save-btn{width:100%;margin-top:10px;padding:11px;background:var(--accent);color:var(--accent-text);border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer}
+.note{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
+.refresh-btn{width:100%;padding:12px;background:var(--love-dim);color:var(--love);border:1px solid rgba(255,77,138,0.3);border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:12px}
+
+/* BOTTOMNAV */
+.bottomnav{display:flex;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;cursor:pointer;color:var(--muted);font-size:10px;transition:color .15s}
+.nav-item.active{color:var(--accent)}
+.nav-icon{font-size:20px;line-height:1}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="brand">🎸 <span>GigAlert</span></div>
+      <div class="live-pill"><div class="live-dot"></div>Agente activo</div>
+    </div>
+    <div class="topbar-tabs">
+      <div class="ttab active" onclick="showTab('cartelera',this)">Cartelera</div>
+      <div class="ttab" onclick="showTab('mis-favoritos',this)">Mis favoritos ❤️</div>
+      <div class="ttab" onclick="showTab('ajustes',this)">Ajustes</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- CARTELERA TAB -->
+    <div id="tab-cartelera" class="section">
+      <div class="filter-row" id="filterRow">
+        <div class="fchip on" onclick="toggleFilter(this,'Todos')">Todos</div>
+        <div class="fchip on" onclick="toggleFilter(this,'Festivales')">🎪 Festivales</div>
+        <div class="fchip on" onclick="toggleFilter(this,'Conciertos')">🎤 Conciertos</div>
+        <div class="fchip on" onclick="toggleFilter(this,'Metal')">🤘 Metal</div>
+        <div class="fchip on" onclick="toggleFilter(this,'Indie')">🎸 Indie</div>
+        <div class="fchip on" onclick="toggleFilter(this,'Rock')">🔊 Rock</div>
+      </div>
+
+      <div id="love-banner" class="love-banner" style="display:none">
+        <div class="love-banner-icon">💖</div>
+        <div class="love-banner-text" id="love-banner-text"></div>
+      </div>
+
+      <div id="cartelera-list">
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <div>Buscando conciertos en España...</div>
+          <p>El agente está revisando la cartelera</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIS FAVORITOS TAB -->
+    <div id="tab-mis-favoritos" class="section" style="display:none">
+      <div class="sec-label" style="margin-bottom:14px">Eventos con tus artistas <span>♥</span></div>
+      <div id="fav-list">
+        <div class="empty-box">Primero carga la cartelera para ver cuáles te encantan.</div>
+      </div>
+    </div>
+
+    <!-- AJUSTES TAB -->
+    <div id="tab-ajustes" class="section" style="display:none">
+      <button class="refresh-btn" onclick="loadCartelera()">🔄 Actualizar cartelera ahora</button>
+
+      <div class="settings-card">
+        <div class="settings-title">Artistas favoritos</div>
+        <div class="tag-grid" id="artistGrid">
+          <div class="stag on" onclick="this.classList.toggle('on')">Imagine Dragons</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Britney Spears</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Blanco White</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Tame Impala</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Carlos Ares</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Falling In Reverse</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Mehro</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">AC/DC</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Da Ti</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Kakkamadafakka</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Parov Stelar</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">AURORA</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Bring Me The Horizon</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Pierce The Veil</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Sleeping With Sirens</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Nickelback</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Evanescence</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">IZAL</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">BABYMETAL</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Florence + The Machine</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Bad Omens</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Linkin Park</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Muse</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">The Rasmus</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Paramore</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Sum 41</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Red Hot Chili Peppers</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Mike Shinoda</div>
+          <div class="stag on" onclick="this.classList.toggle('on')">Breaking Benjamin</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-title">Géneros de interés</div>
+        <div class="tag-grid" id="genreGrid">
+          <div class="stag on-genre" onclick="this.classList.toggle('on-genre')">Indie</div>
+          <div class="stag on-genre" onclick="this.classList.toggle('on-genre')">Rock</div>
+          <div class="stag on-genre" onclick="this.classList.toggle('on-genre')">Metal</div>
+          <div class="stag on-genre" onclick="this.classList.toggle('on-genre')">Heavy Metal</div>
+          <div class="stag" onclick="this.classList.toggle('on-genre')">Post-rock</div>
+          <div class="stag" onclick="this.classList.toggle('on-genre')">Punk</div>
+          <div class="stag" onclick="this.classList.toggle('on-genre')">Grunge</div>
+          <div class="stag" onclick="this.classList.toggle('on-genre')">Alternativo</div>
+          <div class="stag" onclick="this.classList.toggle('on-genre')">Pop</div>
+          <div class="stag" onclick="this.classList.toggle('on-genre')">Electrónica</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-title">Zona</div>
+        <div class="tag-grid" id="zoneGrid">
+          <div class="stag on-zone" onclick="this.classList.toggle('on-zone')">Valencia</div>
+          <div class="stag on-zone" onclick="this.classList.toggle('on-zone')">Levante</div>
+          <div class="stag on-zone" onclick="this.classList.toggle('on-zone')">Benicàssim</div>
+          <div class="stag on-zone" onclick="this.classList.toggle('on-zone')">Madrid</div>
+          <div class="stag on-zone" onclick="this.classList.toggle('on-zone')">Barcelona</div>
+          <div class="stag on-zone" onclick="this.classList.toggle('on-zone')">Toda España</div>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-title">Notificaciones</div>
+        <div class="setting-row">
+          <div><div class="setting-label">Artista favorito anunciado</div><div class="setting-sub">Aviso inmediato</div></div>
+          <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">Resumen semanal</div><div class="setting-sub">Lunes por la mañana</div></div>
+          <label class="toggle"><input type="checkbox"/><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-title">Clave API de Claude</div>
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-..."/>
+        <p class="note">Necesaria para buscar en tiempo real. Consíguela gratis en <strong>console.anthropic.com</strong> → API Keys.</p>
+        <button class="save-btn" onclick="saveKey()">Guardar clave</button>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- EVENT MODAL -->
+  <div class="modal-overlay" id="eventModal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div id="modalPoster"></div>
+      <div class="modal-body">
+        <div id="modalLoveRow" class="modal-love-row" style="display:none">
+          <span class="modal-love-badge">💖 ¡Tienes artistas aquí!</span>
+        </div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-sub" id="modalSub"></div>
+        <div class="modal-grid" id="modalGrid"></div>
+        <div id="modalArtistsSection"></div>
+        <div class="modal-actions">
+          <button class="btn-primary" id="modalTicketBtn">Ver entradas</button>
+          <button class="btn-secondary" id="modalNotifyBtn">🔔 Avisar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottomnav">
+    <div class="nav-item active" onclick="showTab('cartelera',null,this)"><div class="nav-icon">🎟️</div>Cartelera</div>
+    <div class="nav-item" onclick="showTab('mis-favoritos',null,this)"><div class="nav-icon">💖</div>Favoritos</div>
+    <div class="nav-item" onclick="showTab('ajustes',null,this)"><div class="nav-icon">⚙️</div>Ajustes</div>
+  </div>
+</div>
+
+<script>
+// ---- STATE ----
+let apiKey = localStorage.getItem('gig_api_key') || '';
+let allEvents = [];
+let activeFilters = new Set(['Todos','Festivales','Conciertos','Metal','Indie','Rock']);
+
+if (apiKey) document.getElementById('apiKeyInput').value = apiKey;
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+
+// ---- HELPERS ----
+function getFavoriteArtists() {
+  return [...document.querySelectorAll('#artistGrid .stag.on')].map(el => el.textContent.trim().toLowerCase());
+}
+function checkLove(ev) {
+  const favs = getFavoriteArtists();
+  const haystack = (ev.artistas || ev.artists || '').toLowerCase();
+  return favs.filter(f => haystack.includes(f) || f.split(' ').some(w => w.length > 3 && haystack.includes(w)));
+}
+
+// ---- TABS ----
+function showTab(name, tabEl, navEl) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+  document.getElementById('tab-' + name).style.display = '';
+  document.querySelectorAll('.ttab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const order = ['cartelera','mis-favoritos','ajustes'];
+  const idx = order.indexOf(name);
+  document.querySelectorAll('.ttab')[idx]?.classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  else document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+  if (name === 'mis-favoritos') renderFavoritos();
+}
+
+// ---- FILTERS ----
+function toggleFilter(el, label) {
+  el.classList.toggle('on');
+  renderCartelera();
+}
+
+// ---- RENDER CARTELERA ----
+function renderCartelera() {
+  const list = document.getElementById('cartelera-list');
+  if (!allEvents.length) return;
+
+  const activeChips = [...document.querySelectorAll('#filterRow .fchip.on')].map(c => c.textContent.replace(/[🎪🎤🤘🎸🔊]/g,'').trim().toLowerCase());
+  const all = activeChips.includes('todos');
+
+  let filtered = allEvents.filter(ev => {
+    if (all) return true;
+    const tipo = (ev.tipo || '').toLowerCase();
+    const genero = (ev.genero || ev.genre || '').toLowerCase();
+    const artistas = (ev.artistas || '').toLowerCase();
+    return activeChips.some(f => tipo.includes(f) || genero.includes(f) || artistas.includes(f));
+  });
+
+  // Sort: love events first
+  filtered.sort((a,b) => {
+    const aLove = checkLove(a).length;
+    const bLove = checkLove(b).length;
+    if (bLove !== aLove) return bLove - aLove;
+    return 0;
+  });
+
+  // Love banner
+  const loveEvents = filtered.filter(ev => checkLove(ev).length > 0);
+  const banner = document.getElementById('love-banner');
+  const bannerText = document.getElementById('love-banner-text');
+  if (loveEvents.length > 0) {
+    banner.style.display = 'flex';
+    const names = loveEvents.slice(0,3).map(ev => ev.nombre || ev.name).join(', ');
+    bannerText.innerHTML = `<strong>💖 ${loveEvents.length} evento${loveEvents.length>1?'s':''} con artistas que te encantan</strong><br>${names}${loveEvents.length>3?' y más...':''}`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  list.innerHTML = '';
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-box">Sin eventos para este filtro.</div>';
+    return;
+  }
+
+  filtered.forEach(ev => {
+    const matches = checkLove(ev);
+    const isLove = matches.length > 0;
+    const card = document.createElement('div');
+    card.className = 'event-card' + (isLove ? ' is-love' : '');
+    card.onclick = () => openModal(ev);
+
+    const dateParts = (ev.fecha || ev.date || '').split(' ');
+    const day = dateParts[0] || '?';
+    const mon = dateParts[1] || '';
+
+    const artistStr = (ev.artistas || ev.artists || '');
+    const favs = getFavoriteArtists();
+    const artistChips = artistStr ? artistStr.split(/[,·]+/).slice(0,6).map(a => {
+      a = a.trim();
+      const isMatch = favs.some(f => a.toLowerCase().includes(f) || f.includes(a.toLowerCase()));
+      return `<span class="artist-chip${isMatch?' match':''}">${a}${isMatch?' 💖':''}</span>`;
+    }).join('') : '';
+
+    card.innerHTML = `
+      <div class="card-love-bar"></div>
+      <div class="card-inner">
+        <div class="date-block"><div class="date-day">${day}</div><div class="date-mon">${mon}</div></div>
+        <div class="card-body">
+          <div class="card-name">${ev.nombre || ev.name || 'Evento'}</div>
+          <div class="card-meta">
+            <span>${ev.lugar || ev.place || '—'}</span>
+            ${ev.tipo ? `<div class="dot-sep"></div><span class="tag ${ev.tipo.toLowerCase().includes('fest')?'tag-fest':'tag-conc'}">${ev.tipo}</span>` : ''}
+          </div>
+          ${artistChips ? `<div class="card-artists">${artistChips}</div>` : ''}
+        </div>
+        <div class="card-right">
+          ${isLove ? '<div class="love-badge">💖</div>' : ''}
+          <button class="notify-btn" onclick="event.stopPropagation();this.classList.toggle('on');this.textContent=this.classList.contains('on')?'🔔':'🔕'" title="Avisar">🔔</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ---- RENDER FAVORITOS ----
+function renderFavoritos() {
+  const list = document.getElementById('fav-list');
+  if (!allEvents.length) {
+    list.innerHTML = '<div class="empty-box">Primero carga la cartelera para ver cuáles te encantan.</div>';
+    return;
+  }
+  const loves = allEvents.filter(ev => checkLove(ev).length > 0);
+  if (!loves.length) {
+    list.innerHTML = '<div class="empty-box">😔 Ninguno de tus artistas favoritos aparece en la cartelera actual.<br><br>Prueba a actualizar en Ajustes.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  loves.forEach(ev => {
+    const matches = checkLove(ev);
+    const card = document.createElement('div');
+    card.className = 'event-card is-love';
+    card.onclick = () => openModal(ev);
+    const dateParts = (ev.fecha || ev.date || '').split(' ');
+    const day = dateParts[0] || '?';
+    const mon = dateParts[1] || '';
+    card.innerHTML = `
+      <div class="card-love-bar"></div>
+      <div class="card-inner">
+        <div class="date-block"><div class="date-day">${day}</div><div class="date-mon">${mon}</div></div>
+        <div class="card-body">
+          <div class="card-name">${ev.nombre || ev.name}</div>
+          <div class="card-meta"><span>${ev.lugar || ev.place || '—'}</span></div>
+          <div class="card-artists" style="margin-top:6px">
+            ${matches.map(m => `<span class="artist-chip match">💖 ${m}</span>`).join('')}
+          </div>
+        </div>
+        <div class="card-right"><div class="love-badge">💖</div></div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ---- MODAL ----
+function openModal(ev) {
+  const matches = checkLove(ev);
+  const isLove = matches.length > 0;
+
+  document.getElementById('modalLoveRow').style.display = isLove ? 'flex' : 'none';
+  document.getElementById('modalTitle').textContent = ev.nombre || ev.name || '';
+  document.getElementById('modalSub').textContent = [ev.tipo, ev.genero || ev.genre].filter(Boolean).join(' · ');
+
+  // Poster
+  const posterEl = document.getElementById('modalPoster');
+  if (ev.poster) {
+    posterEl.innerHTML = '<div class="poster-loading"><div class="spinner"></div> Cargando cartel...</div>';
+    const img = new Image();
+    img.className = 'modal-poster';
+    img.alt = 'Cartel ' + (ev.nombre || ev.name);
+    img.onload = () => { posterEl.innerHTML = ''; posterEl.appendChild(img); };
+    img.onerror = () => { posterEl.innerHTML = `<div class="modal-poster-ph"><span>🎪</span><p>Cartel no disponible</p></div>`; };
+    img.src = ev.poster;
+  } else {
+    posterEl.innerHTML = `<div class="modal-poster-ph"><span>🎪</span><p>Cartel no disponible</p></div>`;
+  }
+
+  // Info grid
+  const grid = document.getElementById('modalGrid');
+  grid.innerHTML = [
+    { l: 'Fecha', v: ev.fecha || ev.date || '—' },
+    { l: 'Lugar', v: ev.lugar || ev.place || '—' },
+  ].map(c => `<div class="modal-cell"><div class="modal-cell-label">${c.l}</div><div class="modal-cell-val">${c.v}</div></div>`).join('');
+
+  // Artists
+  const artistStr = ev.artistas || ev.artists || '';
+  const favs = getFavoriteArtists();
+  const section = document.getElementById('modalArtistsSection');
+  if (artistStr) {
+    const chips = artistStr.split(/[,·]+/).map(a => {
+      a = a.trim();
+      const m = favs.some(f => a.toLowerCase().includes(f) || f.includes(a.toLowerCase()));
+      return `<span class="modal-chip${m?' match':''}">${a}${m?' 💖':''}</span>`;
+    }).join('');
+    section.innerHTML = `<div class="modal-artists-title">Artistas en cartel</div><div class="modal-chips">${chips}</div>`;
+  } else { section.innerHTML = ''; }
+
+  document.getElementById('modalTicketBtn').onclick = () => { if (ev.web) window.open(ev.web, '_blank'); };
+  document.getElementById('eventModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('eventModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ---- LOAD CARTELERA (AI) ----
+async function loadCartelera() {
+  if (!apiKey) {
+    document.getElementById('cartelera-list').innerHTML =
+      '<div class="empty-box">⚠️ Configura tu clave API en Ajustes para cargar la cartelera en tiempo real.</div>';
+    return;
+  }
+
+  document.getElementById('cartelera-list').innerHTML =
+    '<div class="loading-box"><div class="spinner"></div><div>Buscando conciertos en España...</div><p>El agente está revisando la cartelera</p></div>';
+  document.getElementById('love-banner').style.display = 'none';
+
+  const artists = [...document.querySelectorAll('#artistGrid .stag.on')].map(el => el.textContent.trim()).join(', ');
+  const genres = [...document.querySelectorAll('#genreGrid .stag.on-genre')].map(el => el.textContent.trim()).join(', ');
+  const zones = [...document.querySelectorAll('#zoneGrid .stag.on-zone')].map(el => el.textContent.trim()).join(', ');
+
+  const prompt = `Busca conciertos y festivales de música en España para 2026.
+Artistas favoritos del usuario (marca si aparecen): ${artists}
+Géneros de interés: ${genres}
+Zonas: ${zones}
+
+Devuelve ÚNICAMENTE un JSON array (sin markdown, sin texto extra) con al menos 15 eventos reales, con este formato:
+[{"nombre":"...","fecha":"DD Mon YYYY","lugar":"Ciudad, Venue/Festival","tipo":"Festival|Concierto","genero":"...","artistas":"Artista1, Artista2, Artista3","web":"https://...","poster":"https://...url-imagen-cartel..."}]
+
+Incluye eventos de toda España, priorizando los que tengan artistas de la lista de favoritos. Intenta encontrar la URL real del cartel o imagen oficial del evento para el campo poster.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 3000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    let text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+      const events = JSON.parse(match[0]);
+      allEvents = events;
+      localStorage.setItem('gig_events', JSON.stringify(events));
+      renderCartelera();
+      renderFavoritos();
+    } else {
+      throw new Error('No JSON');
+    }
+  } catch(e) {
+    // Try cache
+    const cached = localStorage.getItem('gig_events');
+    if (cached) {
+      allEvents = JSON.parse(cached);
+      renderCartelera();
+      renderFavoritos();
+      document.getElementById('cartelera-list').insertAdjacentHTML('afterbegin',
+        '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center">Mostrando datos en caché · Actualiza en Ajustes</div>');
+    } else {
+      document.getElementById('cartelera-list').innerHTML =
+        '<div class="empty-box">Error al cargar. Comprueba tu clave API en Ajustes.</div>';
+    }
+  }
+}
+
+// ---- SETTINGS ----
+function saveKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val.startsWith('sk-ant-')) { alert('La clave debe comenzar con sk-ant-'); return; }
+  apiKey = val;
+  localStorage.setItem('gig_api_key', val);
+  const btn = document.querySelector('.save-btn');
+  btn.textContent = '✓ Guardada';
+  setTimeout(() => { btn.textContent = 'Guardar clave'; }, 2000);
+  loadCartelera();
+}
+
+// ---- INIT ----
+const cached = localStorage.getItem('gig_events');
+if (cached) {
+  allEvents = JSON.parse(cached);
+  renderCartelera();
+  renderFavoritos();
+} else {
+  loadCartelera();
+}
+</script>
+</body>
+</html>
