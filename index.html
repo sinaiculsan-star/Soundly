@@ -282,8 +282,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
       <div class="settings-card">
         <div class="settings-title">Clave API de Claude</div>
-        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-proj-..."/>
-        <p class="note">Necesaria para buscar en tiempo real. Consíguela en <strong>platform.openai.com/api-keys</strong>.</p>
+        <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-ant-..."/>
+        <p class="note">Necesaria para buscar en tiempo real con lineups reales. Consíguela en <strong>console.anthropic.com</strong> → Claves de API.</p>
         <button class="save-btn" onclick="saveKey()">Guardar clave</button>
       </div>
     </div>
@@ -557,18 +557,19 @@ Devuelve ÚNICAMENTE un JSON array (sin markdown, sin texto extra) con al menos 
 Incluye eventos de toda España, priorizando los que tengan artistas de la lista de favoritos. Intenta encontrar la URL real del cartel o imagen oficial del evento para el campo poster.`;
 
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01', 'x-api-key': apiKey },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'claude-sonnet-4-6',
         max_tokens: 3000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await res.json();
-    let text = data.choices?.[0]?.message?.content || '';
+    let text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       const events = JSON.parse(match[0]);
@@ -598,7 +599,7 @@ Incluye eventos de toda España, priorizando los que tengan artistas de la lista
 // ---- SETTINGS ----
 function saveKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
-  if (!val.startsWith('sk-')) { alert('La clave debe comenzar con sk-'); return; }
+  if (!val.startsWith('sk-ant-')) { alert('La clave debe comenzar con sk-ant-'); return; }
   apiKey = val;
   localStorage.setItem('gig_api_key', val);
   const btn = document.querySelector('.save-btn');
